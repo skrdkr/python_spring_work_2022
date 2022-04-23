@@ -11,7 +11,7 @@ Input	                            Output
 alphas = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u",
           "v", "w", "x", "y", "z"]
 
-key_code = {'0': " ", "!": "!", "?": "?",}
+key_code = {'0': " ", "!": "!", "?": "?", ",": ","}
 for a in alphas:
     key_code[f"{alphas.index(a)+1}"] = a
 
@@ -20,25 +20,11 @@ nums = input("Введите числа от 1 до 26 через пробел, 
 
 
 def num_to_alpha(in_put, key_code):
-    if "," in in_put:
-        in_put_list = in_put.split(',')
-        for k in range(len(in_put_list)):
-            in_put_list[k] = in_put_list[k].strip()
-        for el in range(len(in_put_list)):
-            in_put_list[el] = in_put_list[el].split(" ")
-            for i in range(len(in_put_list[el])):
-                if in_put_list[el][i] != " ":
-                    in_put_list[el][i] = key_code[in_put_list[el][i]]
-        for i in range(len(in_put_list)):
-            in_put_list[i] = "".join(in_put_list[i])
-        in_put_list = ",".join(in_put_list)
-        print(f"Результат преобразования: {in_put_list.capitalize()}")
-    else:
-        in_put = in_put.split(" ")
-        for i in range(len(in_put)):
-            in_put[i] = key_code[in_put[i]]
-        in_put = "".join(in_put)
-        print(f"Результат преобразования: {in_put.capitalize()}")
+    in_put = in_put.split(" ")
+    for i in range(len(in_put)):
+        in_put[i] = key_code[in_put[i]]
+    in_put = "".join(in_put)
+    print(f"Результат преобразования: {in_put.capitalize()}")
 
 num_to_alpha(nums, key_code)
 
