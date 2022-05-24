@@ -66,7 +66,7 @@ conn = connection.get_connect()
 
 print(connection.get_profile(conn, "sidorov"))
 
-new_student = Profile(1, 'Петров', 'Петр', 'Петрович', 25, 'petrov', 9119112222, 'petrov@mail.ru', '1234')
+new_student = Profile(1, 'Иванов', 'Иван', 'Иванович', 31, 'ivanov', '9119113333', 'ivanov@mail.ru', '1234')
 
 new_student.set_profile(conn)
 
