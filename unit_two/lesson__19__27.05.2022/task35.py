@@ -1,6 +1,8 @@
 
 import psycopg
 import bcrypt
+import time
+from threading import Thread
 
 class Db:
     '''Данный класс содержит конструктор и метод get_connect. В конструкторе инициализируются переменные
@@ -59,10 +61,60 @@ class Profile:
         return obj
 
 
+class View:
+    def render(self):
+        pass
+
+class Timer:                #попробовал сделать таймер, но последний вопрос "зависает"
+    def __init__(self):     #в интернете пишут, что консольный input ничем прервать нельзя
+        self.flag = True    # + не нашел способа остановить thread раньше, если на вопросы отвечают быстро
+
+    def exp_timer(self):
+        time.sleep(10)      #10 секунд стоит для тестирования кода. Сюда, возможно, будут грузиться данные БД
+        self.flag = False   #из столбца теста
+
+
+class TestView(View):
+    def render(self, list_test):
+        print("Выберите тему теста:")
+        for i in range(len(list_test)):
+            t_template = f"{i+1} - {list_test[i]}"
+            print(t_template)
+        id_test = input("Поле для ввода номера теста: ")
+        return id_test
+
+
+class Question(View):
+    def render(self, q_list):
+        timer = Timer()
+        th = Thread(target=timer.exp_timer, args=())
+        th.start() #при быстрых ответах приходится ждать окончание потока - как остановить раньше, пока не додумал
+        for i in range(len(q_list)):
+            q_template = f"{i+1} - {q_list[i]}:"
+            print(q_template)
+            Answers.render(self, q_list[i])
+            user_ans = input("Поле для ответа: ") #будет использовано для внесения в БД
+            if timer.flag == False: #проверяет значение таймера, но проблема с последним вопросом
+                print("Время вышло! Увы!")
+                break
+
+
+class Answers(View):
+    def render(self, question):
+        ans_list = Test.get_answers(self, question) #получаем список ответов
+        for i in range(len(ans_list)):
+            ans_template = f"{i+1}: {ans_list[i]}"
+            print(ans_template)
+
+class Log_in(View):
+    def render(self):
+        login = "Введите логин: "
+        pwd = "Введите пароль: "
+        return [login, pwd]
+
+
 class Auth:
-    def __init__(self, login, password, dbname, conn):
-        self.login = login
-        self.password = password
+    def __init__(self, dbname, conn):
         self.dbname = dbname
         self.conn = conn
         self.is_auth = False
@@ -78,17 +130,19 @@ class Auth:
         phone = int(input("Введите телефон без +7: "))
         e_mail = input("Введите e-mail: ")
         pwd_input = input("Введите пароль: ")
-        pwd_hash = str(bcrypt.hashpw(pwd_input.encode('utf-8'), bcrypt.gensalt()))[2:-1]
-        new_user = Profile(id_group, surname, name, patronity, age, login, phone, e_mail, pwd_hash)
+        new_user = Profile(id_group, surname, name, patronity, age, login, phone, e_mail, pwd_input)
         new_user.set_profile(self.conn)             #заводим нового пользователя в БД
         print(f"Добро пожаловать {name} {surname}")
         self.is_auth = True
 
     def log_in(self): #вход в тестовую систему
-        user = self.dbname.get_profile(self.conn, self.login)           #проверяем наличие профиля по логину
+        login = input(Log_in.render(self)[0])
+        pwd = input(Log_in.render(self)[1])
+        user = self.dbname.get_profile(self.conn, login)           #проверяем наличие профиля по логину
         if user:
             user_db_pwd = bytes(user[0][9], encoding="utf-8")           #если есть, то проверяем пароль
-            valid = bcrypt.checkpw(self.password.encode(), user_db_pwd)
+            valid = bcrypt.checkpw(pwd.encode(), user_db_pwd)
+            #valid = True if pwd == user[0][9] else False
             if valid:
                 print(f"Добро пожаловать {user[0][3]} {user[0][2]}!")   #приветствие
                 self.is_auth = True
@@ -112,11 +166,8 @@ class Test:
         cur.execute(f"SELECT theme from test;")
         t_list = list(sum(cur.fetchall(), ()))
         conn.commit()
-        print("Список тестовых тем:")
-        for i in range(len(t_list)):
-            print(f"{i+1}. {t_list[i]}")
-        id_test = int(input("Поле выбора теста: "))
-        return id_test
+        t_render = TestView.render(self, t_list)
+        return t_render
 
     def get_questions(self, id_test):       #получаем список вопросов по тесту на выбранную тему
         cur = conn.cursor()
@@ -128,19 +179,26 @@ class Test:
         q_list = []                         #отбираем только вопросы из джойнов БД
         for i in range(2, len(res)+1, 3):
             q_list.append(res[i])
-        print("Список вопросов:")
-        for i in range(len(q_list)):        #выводим список вопросов
-            print(f"{i+1}. {q_list[i]}")
+        Question.render(self, q_list)
+
+    def get_answers(self, question): #получаем список ответов
+        cur = conn.cursor()
+        cur.execute(f"SELECT id_question from question where question_text = '{question}';")
+        id_question = list(sum(cur.fetchall(), ()))[0]
+        cur.execute(f"SELECT answer_text from answers where id_question = {id_question};")
+        ans_list = list(sum(cur.fetchall(), ()))
+        return ans_list #возвращаем список ответов
 
 
 class TestSystem:
-    def __init__(self, dbname, conn, user):
+    def __init__(self, dbname, conn):
         self.dbname = dbname
         self.conn = conn
-        self.user = user
 
-    def run_test(self):                         #запускам приложение
-        if user.is_auth == True:                #проверяем аутентификацию пользователя
+    def run(self):                         #запускам приложение
+        user = Auth(connection, conn)
+        user.log_in()
+        if user.is_auth:                #проверяем аутентификацию пользователя
             test = Test(self.dbname, self.conn)
             id_test = test.get_list_tests()
             test.get_questions(id_test)
@@ -149,14 +207,9 @@ class TestSystem:
 connection = Db("db_psy", "user_psycopg", "1234")
 conn = connection.get_connect()
 
-login = input("Введите логин: ") #имитация полей ввода приложения
-password = input("Введите пароль: ")
+test_system = TestSystem(connection, conn)
+test_system.run()
 
-user = Auth(login, password, connection, conn) #аутентификация пользователя. Это часть, скорее всего, тоже нужно
-user.log_in()                                   #засунуть в TestSystem, но времени не хватило это обдумать
-
-test_system = TestSystem(connection, conn, user)
-test_system.run_test()
 
 
 
