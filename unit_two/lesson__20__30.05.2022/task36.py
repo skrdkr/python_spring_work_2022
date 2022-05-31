@@ -4,7 +4,6 @@
 #  3. Реализовать  фабрику FabConsoleView в которой пораждаются экзепляры
 #     классов TestView, QuestionView и AuthView
 
-
 import psycopg
 import bcrypt
 #from abc import ABC, abstractmethod #для абстрактного View и виртуального render()
