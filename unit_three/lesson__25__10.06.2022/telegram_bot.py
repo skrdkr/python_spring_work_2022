@@ -1,3 +1,16 @@
+'''
+# Bonus:
+В качестве бонуса можно реализовать Telegtram - бота который в виде викторины задает
+вопросы. Вопросы можно взять из тестовой системы. После вывода бот принимает вариант ответа.
+В конце викторины выводит кол-во правильных и неправильных ответов и приз в случае успеха.
+В качестве библиотеки можно взять  библиотеку telebot. Описание по разработки и примеры найти
+в многочисленных статьях в Internet.
+'''
+
+#так я сделал бота до понедельника (получения ДЗ), то он у меня заточен именно под мою тестовую систему и БД
+#он заносит результаты в БД, по запросу выдает историю сдачи тестов. То есть не совсем как викторина
+
+
 #TOKEN = '5402077477:AAEKjFYD9KEobhbkPBXTeRZt5cwruVny8-k'
 
 import telebot
@@ -231,15 +244,19 @@ def set_result(message): #ужасный код ниже - надо разбив
     db_worker.cur.execute(f"select test_pass_bar from test where id_test = {id_test};")
     test_pass_bar = list(sum(db_worker.cur.fetchall(), ()))[0]
     test_status = True if (stud_ans_statuses.count(True) / len(stud_ans_statuses)) > (test_pass_bar / 100) else False
+    right_ans_stud = stud_ans_statuses.count(True)
+    wrong_ans_stud = stud_ans_statuses.count(False)
     db_worker.cur.execute(f"insert into student_test(id_student, id_test, dt_test, status, tm_test_duration) "
                           f"values({id_student}, {id_test}, '{dt_test.strftime('%Y-%m-%d %H:%M:%S')}', '{test_status}', "
                           f"'{tm_test_duration}');")
     db_worker.conn.commit()
     match test_status:
         case True:
-            bot.send_message(message.chat.id, "Тест сдан. Поздравляем!")
+            bot.send_message(message.chat.id, f"Поздравляем! Тест сдан. Правильных ответов: {right_ans_stud}. "
+                                              f"Неправильных отетов: {wrong_ans_stud}")
         case False:
-            bot.send_message(message.chat.id, "Тест не сдан. К сожалению!")
+            bot.send_message(message.chat.id, f"К сожалению! Тест не сдан. Правильных ответов: {right_ans_stud}. "
+                                              f"Неправильных отетов: {wrong_ans_stud}")
     bot.send_message(message.chat.id, "Если хотите пройти еще один тест, то введите /test")
     result = bot.send_message(message.chat.id, "Если хотите посмотреть историю сдачи тестов, то введите /result")
     bot.register_next_step_handler(result, result_info) #здесь работает, а в начале нет
